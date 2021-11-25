@@ -1,7 +1,8 @@
 package org.acme.rest.util.entity;
 
-public abstract class PaginationLink {
-
-String first,prev,next,last;
-
+public class PaginationLink {
+    String first;
+    String prev;
+    String next;
+    String last;
 }

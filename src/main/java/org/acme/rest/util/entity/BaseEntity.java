@@ -1,13 +1,6 @@
 package org.acme.rest.util.entity;
 
-public abstract class BaseEntity {
-    private int id;
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
+public  class BaseEntity {
+    public int id;
+    public BaseLink links = new BaseLink();
 }

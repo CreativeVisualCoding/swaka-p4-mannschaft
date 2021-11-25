@@ -2,6 +2,8 @@ package org.acme.person.boundary;
 
 import org.acme.person.control.PersonAdministrator;
 import org.acme.person.entity.Person;
+import org.acme.rest.util.entity.BaseEntity;
+import org.acme.rest.util.entity.RestResponse;
 import org.acme.utils.BaseRessource;
 
 import javax.inject.Inject;
@@ -9,7 +11,6 @@ import javax.transaction.Transactional;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.Map;
 
 @Path("persons")
 @Produces(MediaType.APPLICATION_JSON)
@@ -23,7 +24,7 @@ public class PersonsRessource implements BaseRessource<Person> {
     @GET
     public Response get() {
         Person[] all = this.personAdmin.getAll();
-        return Response.ok(all).build();
+        return Response.ok(restWrapper(all)).build();
     }
 
     @GET
@@ -33,7 +34,7 @@ public class PersonsRessource implements BaseRessource<Person> {
         if (person == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
-        return Response.ok(person).build();
+        return Response.ok(restWrapper(new Person[]{person})).build();
     }
 
 
@@ -45,7 +46,7 @@ public class PersonsRessource implements BaseRessource<Person> {
         if (update == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
-        return Response.ok(update).build();
+        return Response.ok(restWrapper(new Person[]{update})).build();
     }
 
 
@@ -71,5 +72,10 @@ public class PersonsRessource implements BaseRessource<Person> {
             ).build();
         }
         return Response.ok(delete).build();
+    }
+    private RestResponse restWrapper(BaseEntity[] data) {
+        RestResponse restResponse = new RestResponse();
+        restResponse.data = data;
+        return restResponse;
     }
 }

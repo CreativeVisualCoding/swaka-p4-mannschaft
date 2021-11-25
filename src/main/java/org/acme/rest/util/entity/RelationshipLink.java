@@ -1,7 +1,5 @@
 package org.acme.rest.util.entity;
 
-public class RelationshipLink {
-
+public class RelationshipLink extends BaseLink {
     String related;
-
 }

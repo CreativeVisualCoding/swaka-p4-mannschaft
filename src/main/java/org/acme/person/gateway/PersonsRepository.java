@@ -40,15 +40,15 @@ public class PersonsRepository implements PersonKatalog {
 
     @Override
     public Person create(Person person) {
-        person.setId(nextId++);
-        persons.put(person.getId(), person);
-        return getOne(person.getId());
+        person.id = nextId++;
+        persons.put(person.id, person);
+        return getOne(person.id);
     }
 
     @Override
     public Person update(int id, Person person) {
         if (getOne(id) == null) return null;
-        person.setId(id);
+        person.id = id;
         persons.put(id, person);
         return getOne(id);
     }

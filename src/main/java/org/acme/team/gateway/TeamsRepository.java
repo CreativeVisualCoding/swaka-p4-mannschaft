@@ -14,6 +14,7 @@ public class TeamsRepository implements Teamkatalog {
     int nextId = 1;
     Map<Integer, Team> teams = new HashMap<Integer, Team>();
 
+
     public TeamsRepository() {
         Team team = new Team();
         Team team2 = new Team();
@@ -40,15 +41,15 @@ public class TeamsRepository implements Teamkatalog {
 
     @Override
     public Team create(Team team) {
-        team.setId(nextId++);
-        teams.put(team.getId(), team);
-        return getOne(team.getId());
+        team.id = nextId++;
+        teams.put(team.id, team);
+        return getOne(team.id);
     }
 
     @Override
     public Team update(int id, Team team) {
         if (getOne(id) == null) return null;
-        team.setId(id);
+        team.id = id;
         teams.put(id, team);
         return getOne(id);
     }

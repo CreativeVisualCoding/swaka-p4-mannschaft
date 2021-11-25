@@ -1,6 +1,5 @@
 package org.acme.rest.util.entity;
 
-public abstract class Request {
-
-
+public class Request {
+    public BaseType[] data;
 }

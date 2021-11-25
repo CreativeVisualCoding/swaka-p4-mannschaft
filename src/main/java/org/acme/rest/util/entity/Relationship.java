@@ -1,4 +1,4 @@
 package org.acme.rest.util.entity;
 
-public  abstract class Relationship {
+public   class Relationship {
 }
