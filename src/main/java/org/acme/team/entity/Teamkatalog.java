@@ -16,4 +16,5 @@ public interface Teamkatalog {
 
     public Team delete(int id);
 
+    Person deleteOnePlayer(int teamId, int playerId);
 }

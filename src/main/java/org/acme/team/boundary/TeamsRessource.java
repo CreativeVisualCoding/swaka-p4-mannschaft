@@ -1,6 +1,8 @@
 package org.acme.team.boundary;
 
+import org.acme.person.entity.Person;
 import org.acme.rest.util.entity.Error;
+import org.acme.rest.util.entity.Relationship;
 import org.acme.rest.util.entity.RestResponse;
 import org.acme.team.control.TeamAdministrator;
 import org.acme.team.entity.Team;
@@ -10,8 +12,10 @@ import javax.inject.Inject;
 import javax.transaction.Transactional;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
+import java.lang.reflect.Array;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 
@@ -21,69 +25,192 @@ import java.util.List;
 public class TeamsRessource implements BaseRessource<Team> {
 
     @Inject
-    TeamAdministrator teamAdmin;
+    TeamAdministrator teamVw;
 
     @Context
     UriInfo uriInfo;
 
-    @Override
     @GET
+    // Link: http://localhost:8080/teams
     public Response get() {
-        Team[] all = this.teamAdmin.getAll();
+        ArrayList<Team> dtos = new ArrayList<>(Arrays.asList(this.teamVw.getAll()));
+
         List<Link> links = new ArrayList<>();
-        for (Team team:all) {
+        if (dtos.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND).entity("Keine Teams vorhanden.").build();
+        }
+        dtos.forEach(team -> {
+            //Erstellung der jeweiligen paths der einzelnen Teams
             URI uri = UriBuilder.fromUri(this.uriInfo.getAbsolutePath()).path(String.valueOf(team.id)).build();
-         //   Link link = Link.fromUri(uri).rel("teams").type(MediaType.APPLICATION_JSON).param("method", "GET").build();
-        //   links.add(link);
-           team.links.self = uri.toString();
-        }
-       return Response.ok(all).links(links.toArray(new Link[links.size()])).build();
-      //  return Response.ok(RestResponse.getDataResponseFromArray(all)).links().build();
+            Link link = Link.fromUri(uri).rel("teams").type(MediaType.APPLICATION_JSON).param("method", "GET").build();
+            links.add(link);
+        });
+        return Response.ok(dtos).links(links.toArray(new Link[links.size()])).build();
     }
 
-    @Override
     @GET
-    @Path("{id}")
-    public Response getOne(@PathParam("id") int id) {
-        Team team = this.teamAdmin.getOne(id);
-        if (team == null) {
-            return Response.status(Response.Status.NOT_FOUND).build();
+    @Path("/{id}")
+    // Link: http://localhost:8080/teams/1?include=manager,players
+    public Response getOne(@PathParam("id") int id, @QueryParam("include") String include) {
+        Team team = null;
+        List<Link> links = new ArrayList<>();
+        if (include != null) {
+            if (include.contains("manager") && !include.contains("players")) {
+                team = this.teamVw.getOne(id);
+                links.addAll(this.getBothLinks("manager"));
+            } else if (include.contains("players") && !include.contains("manager")) {
+                team = this.teamVw.getOne(id);
+                links.addAll(this.getBothLinks("players"));
+            } else { //include alles
+                team = this.teamVw.getOne(id);
+                links.addAll(this.getBothLinks("manager"));
+                links.addAll(this.getBothLinks("players"));
+            }
+        } else {
+            team = this.teamVw.getOne(id);
         }
-        return Response.ok(RestResponse.getDataResponse(team)).build();
+        if (team != null) {
+            return Response.ok(team).links(links.toArray(new Link[links.size()])).build();
+        }
+        return Response.status(Response.Status.NOT_FOUND).entity("Team mit Id " + id + " existiert nicht.").build();
     }
 
-    @Override
-    @PUT
-    @Path("{id}")
-    @Transactional
-    public Response put(@PathParam("id") int id, Team item) {
-        Team team = this.teamAdmin.update(id, item);
-        if (team == null) {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
-        return Response.ok(RestResponse.getDataResponse(team)).build();
-    }
-
-    @Override
     @POST
-    @Transactional
-    public Response post(Team item) {
-        Team team = this.teamAdmin.create(item);
-        if (team == null) {
-            return Response.ok(RestResponse.getErrorResponse(Error.getNotCreated())).build();
+    public Response post(Team team) {
+        Team newTeam = this.teamVw.create(team);
+        if (newTeam != null) {
+            URI selfUri = UriBuilder.fromUri(this.uriInfo.getAbsolutePath()).path(String.valueOf(newTeam.id)).build();
+            Link selfLink = Link.fromUri(selfUri).rel("teams").type(MediaType.APPLICATION_JSON).param("method", "GET").build();
+            return Response.status(Response.Status.CREATED).entity(newTeam).links(selfLink).build();
         }
-        return Response.ok(RestResponse.getDataResponse(team)).build();
+        return Response.status(Response.Status.CONFLICT).entity("Team existiert bereits.").build();
     }
 
-    @Override
-    @DELETE
-    @Path("{id}")
-    @Transactional
-    public Response delete(@PathParam("id") int id) {
-        Team team = this.teamAdmin.delete(id);
-        if (team == null) {
-            return Response.ok(RestResponse.getErrorResponse(Error.getNotFoundError())).build();
+    @PUT
+    public Response put(Team team) {
+        Team newTeam = this.teamVw.update(team.id, team);
+        if (newTeam != null) {
+            URI selfUri = UriBuilder.fromUri(this.uriInfo.getAbsolutePath()).path(String.valueOf(newTeam.id)).build();
+            Link selfLink = Link.fromUri(selfUri).rel("teams").type(MediaType.APPLICATION_JSON).param("method", "GET").build();
+            return Response.ok(newTeam).links(selfLink).build();
         }
-        return Response.ok(RestResponse.getDataResponse(team)).build();
+        return Response.status(Response.Status.NOT_FOUND).entity("Team existiert nicht.").build();
     }
+
+    @DELETE
+    @Path("/{id}")
+    // Link: http://localhost:8080/teams/0
+    public Response delete(@PathParam("id") int id) {
+        if (this.teamVw.delete(id)) {
+            return Response.ok().build();
+        }
+        return Response.status(Response.Status.NOT_FOUND).entity("Team mit Id " + id + " existiert nicht.").build();
+    }
+
+    @GET
+    @Path("/{id}/relationships/players")
+    // Link: http://localhost:8080/teams/0/relationships/players
+    public Response getPlayersRelation(@PathParam("id") int teamId) {
+        ArrayList<Relationship> rel = new ArrayList<Relationship>();
+        for (Person player:this.teamVw.getOne(teamId).getSpieler()) {
+            rel.add(player.rel);
+        }
+
+        if (rel != null) {
+            List<Link> links = this.getRelationshipLinks();
+            return Response.ok(rel).links(links.toArray(new Link[links.size()])).build();
+        }
+        return Response.status(Response.Status.NOT_FOUND).entity("Team mit Id " + teamId + " existiert nicht.").build();
+    }
+
+    @GET
+    @Path("/{id}/players")
+    // Link: http://localhost:8080/teams/0/players
+    public Response getPlayers(@PathParam("id") int teamId) {
+        ArrayList<Person> persons =new ArrayList<Person>(Arrays.asList(this.teamVw.getOne(teamId).getSpieler()));
+        if (persons.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND).entity("Team mit Id " + teamId + " existiert nicht.").build();
+        }
+        URI uri = UriBuilder.fromUri(this.uriInfo.getAbsolutePath()).build();
+        Link link = Link.fromUri(uri).rel("persons").type(MediaType.APPLICATION_JSON).param("method", "GET").build();
+        return Response.ok(persons).links(link).build();
+    }
+
+    @GET
+    @Path("/{id}/relationships/manager")
+    // Link: http://localhost:8080/teams/0/relationships/manager
+    public Response getManagerRelation(@PathParam("id") int teamId) {
+        Person person = this.teamVw.getOne(teamId).getManager();
+        if (person != null) {
+            List<Link> links = this.getRelationshipLinks();
+            return Response.ok(person).links(links.toArray(new Link[links.size()])).build();
+        }
+        return Response.status(Response.Status.NOT_FOUND).entity("Team mit Id " + teamId + " existiert nicht.").build();
+    }
+
+    @GET
+    @Path("/{id}/manager")
+    // Link: http://localhost:8080/teams/0/manager
+    public Response getManager(@PathParam("id") int teamId) {
+        Person dto = this.teamVw.getOne(teamId).getManager();
+        if (dto != null) {
+            URI uri = UriBuilder.fromUri(this.uriInfo.getAbsolutePath()).build();
+            Link link = Link.fromUri(uri).rel("persons").type(MediaType.APPLICATION_JSON).param("method", "GET").build();
+            return Response.ok(dto).links(link).build();
+        }
+        return Response.status(Response.Status.NOT_FOUND).entity("Team mit Id " + teamId + " existiert nicht.").build();
+    }
+
+    @POST
+    @Path("/{id}/players")
+    // WICHTIG: -> alle PUT und POST nur über die Tests testbar
+    public Response addPlayer(@PathParam("id") int teamId, Person player) {
+        Person newPlayer = this.teamVw.getOne(teamId).setOnePlayer(player);
+        if (newPlayer != null) {
+            URI uri = UriBuilder.fromUri(this.uriInfo.getAbsolutePath()).build();
+            Link link = Link.fromUri(uri).rel("persons").type(MediaType.APPLICATION_JSON).param("method", "GET").build();
+            return Response.status(Response.Status.CREATED).entity(newPlayer).links(link).build();
+        }
+        return Response.status(Response.Status.CONFLICT).entity("Spieler existiert bereits im Team mit Id " + teamId + ".").build();
+    }
+
+    @DELETE
+    @Path("/{teamId}/players/{playerId}")
+    // Link: http://localhost:8080/teams/0/players/1
+    // wird aber auch ueber Test Klasse getestet
+    public Response deletePlayer(@PathParam("teamId") int teamId, @PathParam("playerId") int playerId) {
+        if (this.teamVw.deletePlayer(teamId, playerId) != null) {
+            return Response.ok().build();
+        }
+        return Response.status(Response.Status.NOT_FOUND).entity("Player mit Id " + playerId + " existiert nicht im Team mit Id " + teamId + ".").build();
+    }
+
+    private List<Link> getBothLinks(String path){
+        return Arrays.asList(this.getSelfLink(path), this.getRelatedLink(path));
+    }
+
+    private Link getSelfLink(String path){
+        URI selfUri = UriBuilder.fromUri(this.uriInfo.getAbsolutePath()).path(path).build();
+        return Link.fromUri(selfUri).rel("persons").type(MediaType.APPLICATION_JSON).param("method", "GET").build();
+
+    }
+
+    private Link getRelatedLink(String path){
+        URI relatedUri = UriBuilder.fromUri(this.uriInfo.getAbsolutePath()).path("relationships").path(path).build();
+        return Link.fromUri(relatedUri).rel("persons").type(MediaType.APPLICATION_JSON).param("method", "GET").build();
+    }
+
+    private List<Link> getRelationshipLinks(){
+        URI selfUri = UriBuilder.fromUri(this.uriInfo.getAbsolutePath()).build();
+        Link selfLink = Link.fromUri(selfUri).rel("persons").type(MediaType.APPLICATION_JSON).param("method", "GET").build();
+        UriBuilder relatedUri = UriBuilder.fromUri(this.uriInfo.getBaseUri());
+        this.uriInfo.getPathSegments().forEach(path -> {
+            if(!path.getPath().equals("relationships")){
+                relatedUri.path(path.getPath());
+            }
+        });
+        Link relatedLink = Link.fromUri(relatedUri.build()).rel("persons").type(MediaType.APPLICATION_JSON).param("method", "GET").build();
+        return Arrays.asList(selfLink, relatedLink);
+    }
+
 }

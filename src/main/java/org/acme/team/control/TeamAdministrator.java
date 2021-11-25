@@ -1,6 +1,7 @@
 package org.acme.team.control;
 
 
+import org.acme.person.entity.Person;
 import org.acme.team.entity.Team;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -39,7 +40,11 @@ public class TeamAdministrator implements CRUD {
     }
 
     @Override
-    public Team delete(int id) {
+    public boolean delete(int id) {
         return this.löscheInKatalog.delete(id);
+    }
+
+    public Person deletePlayer(int teamId, int playerId) {
+        return this.löscheInKatalog.deleteOnePlayer(teamId,playerId);
     }
 }

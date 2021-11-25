@@ -36,4 +36,18 @@ public class Team extends BaseEntity {
     public void setSpieler(Person[] spieler) {
         this.spieler = spieler;
     }
+
+    public Person setOnePlayer(Person player){
+        this.spieler[spieler.length] = player;
+        return player;
+    }
+
+    public Person deleteOnePlayer(int playerId) {
+     for(int i= 0; i <= this.getSpieler().length;i++){
+         if (this.getSpieler()[i].id == playerId){
+             return this.getSpieler()[i];
+         }
+     }
+        return null;
+    }
 }

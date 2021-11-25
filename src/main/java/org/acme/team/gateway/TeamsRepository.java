@@ -58,4 +58,9 @@ public class TeamsRepository implements Teamkatalog {
     public Team delete(int id) {
         return teams.remove(id);
     }
+
+    @Override
+    public void deleteOnePlayer(int teamId, int playerId) {
+        getOne(teamId).deleteOnePlayer(playerId);
+    }
 }

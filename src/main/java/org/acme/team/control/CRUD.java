@@ -11,5 +11,5 @@ public interface CRUD {
 
     Team create(Team item);
 
-    Team delete(int id);
+    boolean delete(int id);
 }

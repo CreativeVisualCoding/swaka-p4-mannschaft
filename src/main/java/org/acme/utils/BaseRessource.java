@@ -6,9 +6,9 @@ import java.util.Map;
 public interface BaseRessource<T> {
     public Response get();
 
-    public Response getOne(int id);
+    public Response getOne(int id, String include);
 
-    public Response put(int id, T item);
+    public Response put(T item);
 
     public Response post(T item);
 
