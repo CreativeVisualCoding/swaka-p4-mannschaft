@@ -4,9 +4,16 @@ import org.acme.person.entity.Person;
 
 import java.util.Map;
 
-public abstract class Teamkatalog {
+public interface Teamkatalog {
 
-public Person manager;
-public Map<Integer,Person> spieler;
+    public Team[] getAll();
+
+    public Team getOne(int id);
+
+    public Team create(Team team);
+
+    public Team update(int id, Team team);
+
+    public Team delete(int id);
 
 }

@@ -6,5 +6,16 @@ public class Team extends BaseEntity {
 
     TeamAttribute[] attributes;
 
+    public Team() {
+        super();
+    }
+
+    public TeamAttribute[] getAttributes() {
+        return attributes;
+    }
+
+    public void setAttributes(TeamAttribute[] attributes) {
+        this.attributes = attributes;
+    }
 
 }

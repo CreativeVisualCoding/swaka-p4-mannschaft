@@ -1,14 +1,16 @@
 package org.acme.utils;
 
+import javax.ws.rs.core.Response;
 import java.util.Map;
 
 public interface BaseRessource<T> {
-    public T [] get();
-    public T getOne();
-    public T put(T item);
-    public T post(T item);
-    public T delete();
-    public T [] filter(Map<T ,T> items);
-    public T [] getPaginated(Map <T,T> items);
+    public Response get();
 
+    public Response getOne(int id);
+
+    public Response put(int id, T item);
+
+    public Response post(T item);
+
+    public Response delete(int id);
 }
